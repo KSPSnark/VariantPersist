@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2036
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VariantPersist", "VariantPersist.csproj", "{98DB909C-BEAB-48A2-9695-3352662E73BA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{98DB909C-BEAB-48A2-9695-3352662E73BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98DB909C-BEAB-48A2-9695-3352662E73BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98DB909C-BEAB-48A2-9695-3352662E73BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98DB909C-BEAB-48A2-9695-3352662E73BA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C1027206-5ED2-4A77-9D82-6BBBA6E785DB}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,7 @@
+echo Creating release file structure
+mkdir -p GameData/VariantPersist
+cp ../files/changelog.txt GameData/VariantPersist
+cp ../src/bin/Release/VariantPersist.dll GameData/VariantPersist
+cp ../LICENSE GameData/VariantPersist
+cp ../README.md GameData/VariantPersist
+echo Done.

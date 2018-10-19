@@ -1,0 +1,170 @@
+﻿using System.Collections.Generic;
+
+namespace VariantPersist
+{
+    /// <summary>
+    /// Stores persisted default-variant preferences in the .sfs file. This is where the settings
+    /// are "remembered".
+    /// </summary>
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.EDITOR)]
+    class VariantPersistScenario : ScenarioModule
+    {
+        private const string DEFAULT_VARIANT_VALUE = "default_variant";
+
+        private static VariantPersistScenario instance = null;
+        private static readonly IEnumerable<KeyValuePair<string, string>> emptyDefaults = new Dictionary<string, string>();
+
+        // key = part name, value = preferred default variant
+        private Dictionary<string, string> defaultVariants;
+
+        private void Start()
+        {
+            instance = this;
+        }
+
+        /// <summary>
+        /// Call this to remember a particular part's variant.
+        /// </summary>
+        /// <param name="part"></param>
+        public static void SelectDefaultVariant(AvailablePart part)
+        {
+            if (instance == null) return;
+
+            Logging.Log("Setting default variant: " + part.name + " = " + part.variant.Name);
+            instance.defaultVariants[part.name] = part.variant.Name;
+        }
+
+        /// <summary>
+        /// Here when the scenario is loading. It's called after the other stock
+        /// info is loaded.
+        /// </summary>
+        /// <param name="node"></param>
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+
+            defaultVariants = new Dictionary<string, string>();
+
+            // Populate our default variants from the config node.
+            List<string> values = node.GetValuesList(DEFAULT_VARIANT_VALUE);
+            Logging.Log("Loading " + values.Count + " default variants");
+            for (int i = 0; i < values.Count; ++i)
+            {
+                string tweakedPart;
+                string selectedVariant;
+                if (PairFromString(values[i], out tweakedPart, out selectedVariant))
+                {
+                    Logging.Log("Loading default variant: " + tweakedPart + " = " + selectedVariant);
+                    defaultVariants.Add(tweakedPart, selectedVariant);
+                }
+                else
+                {
+                    Logging.Error("Error when loading default variant. Can't parse \"" + values[i] + "\"");
+                }
+            }
+
+            // Set our preferences on the loaded parts.
+            InitializeParts();
+        }
+
+        /// <summary>
+        /// Here when the scenario is saving. It's called after the other stock info is saved.
+        /// </summary>
+        /// <param name="node"></param>
+        public override void OnSave(ConfigNode node)
+        {
+            base.OnSave(node);
+
+            Logging.Log("Saving " + defaultVariants.Count + " default variants");
+            foreach (KeyValuePair<string, string> pair in defaultVariants)
+            {
+                Logging.Log("Saving default variant: " + pair.Key + " = " + pair.Value);
+                node.AddValue(DEFAULT_VARIANT_VALUE, PairToString(pair));
+            }
+        }
+
+        /// <summary>
+        /// Given a key-value pair, get a compact string representation thereof.
+        /// Needs to work with PairFromString.
+        /// </summary>
+        /// <param name="pair"></param>
+        /// <returns></returns>
+        private static string PairToString(KeyValuePair<string, string> pair)
+        {
+            return string.Format("{0}={1}", pair.Key, pair.Value);
+        }
+
+        /// <summary>
+        /// Given a string representing a key-value pair, parse the pair from it.
+        /// Returns true for success, false for failure.
+        /// Needs to work with PairToString.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private static bool PairFromString(string text, out string key, out string value)
+        {
+            key = value = null;
+            if (text == null) return false;
+            int equalsIndex = text.IndexOf('=');
+            if (equalsIndex < 1) return false; // key can't be empty
+            if (equalsIndex >= (text.Length - 1)) return false; // value can't be empty
+            key = text.Substring(0, equalsIndex);
+            value = text.Substring(equalsIndex + 1);
+            return true;
+        }
+
+        private void InitializeParts()
+        {
+            // Iterate through all our stored "default variant" selections. For each one,
+            // set the default variant in the game.
+            int setCount = 0;
+            foreach (KeyValuePair<string, string> selection in defaultVariants)
+            {
+                // Find the referenced part.
+                string partName = selection.Key;
+                AvailablePart foundPart = PartLoader.LoadedPartsList.Find(part => part.name == partName);
+                if (foundPart == null)
+                {
+                    // No such part exists. This could happen if, for example, a player previously
+                    // had a mod installed, selected a variant for one of the parts in the mod,
+                    // and then later uninstalled the mod. When this happens, just remove that
+                    // selected variant from our stored list so that it won't bother us in the future.
+                    Logging.Warn("No such part \"" + partName + "\" found. Removing default variant setting for it.");
+                    RemoveDefaultVariant(partName);
+                    continue;
+                }
+
+                // Find the referenced variant.
+                string defaultVariant = selection.Value;
+                PartVariant foundVariant = foundPart.Variants.Find(variant => variant.Name == defaultVariant);
+                if (foundVariant == null)
+                {
+                    // No such variant exist. This could happen if, for example, a player updated
+                    // a mod that used to have a variant with this name, such that the variant
+                    // no longer exists. When this happens, just remove that seleted variant
+                    // from our stored list so that it won't bother us in the future.
+                    Logging.Warn("No such variant \"" + defaultVariant + "\" exists for part \""
+                        + partName + "\". Removing default variant setting for it.");
+                    RemoveDefaultVariant(partName);
+                    continue;
+                }
+
+                // Set the preferred variant for the part.
+                foundPart.variant = foundVariant;
+                ++setCount;
+            }
+            Logging.Log("Finished setting default variants for " + setCount + " parts.");
+        }
+
+        private void RemoveDefaultVariant(string partName)
+        {
+            string defaultVariant;
+            if (!defaultVariants.TryGetValue(partName, out defaultVariant)) return;
+            Logging.Log("Unsetting default variant for part: " + partName + " (was \"" + defaultVariant + "\")");
+            defaultVariants.Remove(partName);
+        }
+
+    }
+}
